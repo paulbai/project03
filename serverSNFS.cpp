@@ -31,10 +31,10 @@ int debug = 1;	 //if 1 it'll show output msgs surrounded by if(debug), for troub
 //declare your function here
 
 /*
-struct arguments {
-	int arg1;
-	char* arg2;
-};*/
+ struct arguments {
+ int arg1;
+ char* arg2;
+ };*/
 
 int main(int argc, char *argv[])
 {
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	
-
+	
 	
 	int port = atoi(argv[1]);
 	std::string directory = argv[2];
@@ -58,62 +58,62 @@ int main(int argc, char *argv[])
 	
 	
 	
-	  int sd, sd_current;
-        unsigned int addrlen;
-        struct sockaddr_in sin;
-        struct sockaddr_in pin;
-        int counter = 0;//keeps track of the threads created
-        pthread_t pthreadClient[10];//array of 10 threads
-
-        if(debug)
-               printf("Listening for Connections on port: %d\n", port);
-
-        //get socket
-        if((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1){
-                perror("not able to open a socket");
-                exit(1);
-        }
-
-        //socket structure
-        memset(&sin, 0, sizeof(sin));
-        sin.sin_family = AF_INET;
-        sin.sin_addr.s_addr = INADDR_ANY;
-        sin.sin_port = htons(port);
-
-        //bind socket to the given port
-        if(bind(sd, (struct sockaddr*) &sin, sizeof(sin)) == -1){
-                perror("not able to bind");
-                exit(1);
-        }
-
-        while(1){
-                if(listen(sd,5) == -1){ //not able to listen
-                        perror("not able to listen");
-                        exit(1);
-                }
-
-                //wait for clients to connect
-                addrlen = sizeof(pin);
-                if((sd_current = accept(sd, (struct sockaddr*) &pin, &addrlen)) == -1){
-                        perror("not able to accept");
-                        return 0;
-                }
-                //print out client name and port
-                if(debug)
-                        printf("Accepting client: %s, port: %d\n", inet_ntoa(pin.sin_addr), ntohs(pin.sin_port));
-
-                if(debug){
-                        printf("client sock: %d\n", sd_current);
-                }
-                
-                //create thread for every connection
-                // pthread_create(&pthreadClient[counter], NULL, handleClient, (void *)&sd_current);
-                 pthread_create(&pthreadClient[counter], NULL, request_handler, (void *)&sd_current); //put function name
-                 pthread_detach(pthreadClient[counter]);
-                 counter++;
-        }
+	int sd, sd_current;
+	unsigned int addrlen;
+	struct sockaddr_in sin;
+	struct sockaddr_in pin;
+	int counter = 0;//keeps track of the threads created
+	pthread_t pthreadClient[10];//array of 10 threads
 	
-		return 0;
+	if(debug)
+		printf("Listening for Connections on port: %d\n", port);
+	
+	//get socket
+	if((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1){
+		perror("not able to open a socket");
+		exit(1);
+	}
+	
+	//socket structure
+	memset(&sin, 0, sizeof(sin));
+	sin.sin_family = AF_INET;
+	sin.sin_addr.s_addr = INADDR_ANY;
+	sin.sin_port = htons(port);
+	
+	//bind socket to the given port
+	if(bind(sd, (struct sockaddr*) &sin, sizeof(sin)) == -1){
+		perror("not able to bind");
+		exit(1);
+	}
+	
+	while(1){
+		if(listen(sd,5) == -1){ //not able to listen
+			perror("not able to listen");
+			exit(1);
+		}
+		
+		//wait for clients to connect
+		addrlen = sizeof(pin);
+		if((sd_current = accept(sd, (struct sockaddr*) &pin, &addrlen)) == -1){
+			perror("not able to accept");
+			return 0;
+		}
+		//print out client name and port
+		if(debug)
+			printf("Accepting client: %s, port: %d\n", inet_ntoa(pin.sin_addr), ntohs(pin.sin_port));
+		
+		if(debug){
+			printf("client sock: %d\n", sd_current);
+		}
+		
+		//create thread for every connection
+		// pthread_create(&pthreadClient[counter], NULL, handleClient, (void *)&sd_current);
+		pthread_create(&pthreadClient[counter], NULL, request_handler, (void *)&sd_current); //put function name
+		pthread_detach(pthreadClient[counter]);
+		counter++;
+	}
+	
+	return 0;
 }
 
 
@@ -123,22 +123,22 @@ void* request_handler(void* socket)
 	int* temp =(int*) socket;
 	int sock = *temp;
 	
-	    
+	
 	int i;
 	recv(sock, &i, sizeof(int), 0);
 	i = ntohl(i);
-
+	
 	switch(i) 
 	{
 		case  1: handle_getattr(sock);
-		//case  2: handle_readdir(sock);
+			//case  2: handle_readdir(sock);
 		case  3: handle_open(sock);
-		//case  4: handle_read(sock);
-		//case  5: handle_write(sock);
-		//case  6: handle_create(sock);
+			//case  4: handle_read(sock);
+			//case  5: handle_write(sock);
+			//case  6: handle_create(sock);
 		case  7: handle_mkdir(sock);
-		//case  8: handle_releasedir(sock);
-		//case  9: handle_opendir(sock);
+			//case  8: handle_releasedir(sock);
+			//case  9: handle_opendir(sock);
 		case 10: handle_truncate(sock);
 		case 11: handle_close(sock);
 	}
@@ -155,16 +155,16 @@ void handle_getattr(int sock)
 	struct stat stbuf;
 	char[sizeof(int) + sizeof(nlink_t) + sizeof(mode_t) + sizeof(off_t)] toSend;
 	struct stat stbuf;
-
+	
 	/* Receive/Unmarshall Pathsize */
 	int pathsize;
 	recv(sock, &pathsize, sizeof(int), 0);
 	pathsize = ntohl(pathsize);
-
+	
 	/* Receive Path */
 	char* path;
 	recv(sock, path, pathsize, 0);
-
+	
 	/* Making system Call */
 	result = lstat(path, stbuf);
 	
@@ -181,7 +181,7 @@ void handle_getattr(int sock)
 	memcpy(toSend + sizeof(int), &nlink, sizeof(nlink_t));
 	memcpy(toSend + sizeof(int) + sizeof(nlink_t), &mode, sizeof(mode_t));
 	memcpy(toSend + sizeof(int) + sizeof(nlink_t) + sizeof(mode_t), &off_t, sizeof(off_t));
-
+	
 	/* Sending Response to Client */
 	send(sock, toSend, sizeof(toSend), 0);
 	
@@ -203,42 +203,128 @@ void handle_open(int sock)
 	char* temp;
 	int res;
 	char[sizeof(int)] result;
-
+	
 	/* Receive/Unmarshall Pathsize */
 	int pathsize;
 	recv(sock, &pathsize, sizeof(int), 0);
 	pathsize = ntohl(pathsize);
-
+	
 	/* Receive/Unmarshall fileInfoStruct */
 	struct fuse_file_info* fileInfoStruct;
 	recv(sock, temp, sizeof(struct fuse_file_info), 0);
 	memcpy(fileInfoStruct, temp, sizeof(struct fuse_file_info));
-
+	
 	/* Receive Path */
 	char* path;
 	recv(sock, path, pathsize, 0);
-
+	
 	/* Making System Call */
 	res = open(path, fileInfoStruct->flags);
-
+	
 	/* Marshalling Response to Client */
 	res = htonl(res);
 	memcpy(result, &res, sizeof(int));
 	
 	/* Sending Response to Client */
 	send(sock, result, sizeof(int), 0);
-
+	
 	return;
 }
 
 void handle_read(int sock)
 {
 	/* PAUL CODE HERE */
+	int res;
+	char[1024] buf;
+	char[sizeof(int)] result;
+	
+	/* Receive/Unmarshall Pathsize */
+	int pathsize;
+	recv(sock, &pathsize, sizeof(int), 0);
+	pathsize = ntohl(pathsize);
+	
+	/* Receive/Unmarshall mode */
+	mode_t mode;
+	recv(sock, &mode, sizeof(mode_t), 0);
+	mode = ntohl(mode);
+	
+	/* Receive Path */
+	char* path;
+	recv(sock, path, pathsize, 0);
+	
+	/* Receive fuse_file_info */
+	char structBuffer[struct fuse_file_info)];
+	struct fuse_file_info* ffinfo;
+	
+	/* Receive size to read */
+	size_t count;
+	recv(sock, &count, sizeof(size_t), 0)
+	
+	
+	
+	//Call open?
+	int fd = open(path, fileInfoStruct->flags);
+	
+	/* Making System Call */
+	res = read(fd, buf, count);
+	
+	
+	
+	
+	/* Marshalling Response to Client */
+	res = htonl(res);
+	memcpy(result, &res, sizeof(int));
+	
+	/* Sending Response to Client */
+	send(sock, result, sizeof(int), 0);
 }
 
 void handle_write(int sock)
 {
 	/* PAUL CODE HERE */
+	int res;
+	char[1024] buf;
+	char[sizeof(int)] result;
+	
+	/* Receive/Unmarshall Pathsize */
+	int pathsize;
+	recv(sock, &pathsize, sizeof(int), 0);
+	pathsize = ntohl(pathsize);
+	
+	/* Receive/Unmarshall mode */
+	mode_t mode;
+	recv(sock, &mode, sizeof(mode_t), 0);
+	mode = ntohl(mode);
+	
+	/* Receive Path */
+	char* path;
+	recv(sock, path, pathsize, 0);
+	
+	/* Receive fuse_file_info */
+	char structBuffer[struct fuse_file_info)];
+	struct fuse_file_info* ffinfo;
+	
+	/* Receive size to write */
+	size_t count;
+	recv(sock, &count, sizeof(size_t), 0)
+	
+	
+	
+	//Call open?
+	int fd = open(path, fileInfoStruct->flags);
+	
+	/* Making System Call */
+	res = write(fd, buf, count);
+	
+	
+	
+	
+	/* Marshalling Response to Client */
+	res = htonl(res);
+	memcpy(result, &res, sizeof(int));
+	
+	/* Sending Response to Client */
+	send(sock, result, sizeof(int), 0);
 }
 
 void handle_create(int sock)
@@ -246,17 +332,17 @@ void handle_create(int sock)
 	//sonu
 	int res;
 	char[sizeof(int)] result;
-
+	
 	/* Receive/Unmarshall Pathsize */
 	int pathsize;
 	recv(sock, &pathsize, sizeof(int), 0);
 	pathsize = ntohl(pathsize);
-
+	
 	/* Receive/Unmarshall mode */
 	mode_t mode;
 	recv(sock, @mode, sizeof(mode_t), 0);
 	mode = ntohl(mode);
-
+	
 	/* Receive Path */
 	char* path;
 	recv(sock, path, pathsize, 0);
@@ -269,7 +355,7 @@ void handle_create(int sock)
 	
 	/* Making System Call */
 	res = create(path, ffinfo->flags);
-
+	
 	/* Marshalling Response to Client */
 	res = htonl(res);
 	memcpy(result, &res, sizeof(int));
@@ -286,31 +372,31 @@ void handle_mkdir(int sock)
 {
 	int res;
 	char[sizeof(int)] result;
-
+	
 	/* Receive/Unmarshall Pathsize */
 	int pathsize;
 	recv(sock, &pathsize, sizeof(int), 0);
 	pathsize = ntohl(pathsize);
-
+	
 	/* Receive/Unmarshall mode */
 	mode_t mode;
 	recv(sock, @mode, sizeof(mode_t), 0);
 	mode = ntohl(mode);
-
+	
 	/* Receive Path */
 	char* path;
 	recv(sock, path, pathsize, 0);
 	
 	/* Making System Call */
 	res = mkdir(path, mode);
-
+	
 	/* Marshalling Response to Client */
 	res = htonl(res);
 	memcpy(result, &res, sizeof(int));
 	
 	/* Sending Response to Client */
 	send(sock, result, sizeof(int), 0);
-
+	
 }
 
 void handle_releasedir(int sock)
@@ -332,31 +418,31 @@ void handle_truncate(int sock)
 {
 	int res;
 	char[sizeof(int)] result;
-
+	
 	/* Receive/Unmarshall Pathsize */
 	int pathsize;
 	recv(sock, &pathsize, sizeof(int), 0);
 	pathsize = ntohl(pathsize);
-
+	
 	/* Receive/Unmarshall Offset */
 	off_t offset;
 	recv(sock, @offset, sizeof(off_t), 0);
 	offset = ntohl(offset);
-
+	
 	/* Receive Path */
 	char* path;
 	recv(sock, path, pathsize, 0);
 	
 	/* Making System Call */
 	res = truncate(path, offset);
-
+	
 	/* Marshalling Response to Client */
 	res = htonl(res);
 	memcpy(result, &res, sizeof(int));
 	
 	/* Sending Response to Client */
 	send(sock, result, sizeof(int), 0);
-
+	
 	return;
 }
 
@@ -364,8 +450,8 @@ void handle_close (int sock)
 {
 	int res;
 	char[sizeof(int)] result;
-
-
+	
+	
 	/* Receive/Unmarshall Pathsize */
 	int pathsize;
 	recv(sock, &pathsize, sizeof(int), 0);
