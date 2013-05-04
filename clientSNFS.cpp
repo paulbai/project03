@@ -112,12 +112,67 @@ static int my_open(const char* path, struct fuse_file_info* fileInfoStruct)
 static int my_read(const char *path, char* buf, size_t size, off_t offset, struct fuse_file_info* fileInfoStruct)
 {
 	int type = 4;
+	int pathsize = strlen(path) + 1;
+	int structsize = sizeof(struct fuse_file_info);
+	char data[sizeof(int)*2 + sizeof(size_t) + sizeof(off_t) + structsize + strlen(path)+1];
+	
+	/* Marshalling Data */
+	memset(data, 0, sizeof(data));
+	type = htonl(type);
+	memcpy(&data, &type, sizeof(int));
+	size = htonl(size);
+	memcpy(&data + sizeof(int)*2, &size, sizeof(size_t);
+	offset = htonl(offset);
+	memcpy(&data + sizeof(int)*2 + sizeof(size_t), &offset, sizeof(off_t));
+	memcpy(&data + sizeof(int)*2 + sizeof(size_t) + sizeof(off_t), fileInfoStruct, structsize);
+	memcpy(&data + sizeof(int)*2 + sizeof(size_t) + sizeof(off_t) + structsize, path, pathsize);
+	pathsize = htonl(pathsize);
+	memcpy(&data + sizeof(int), &pathsize, sizeof(int));
+
+	/* Sending Data to Server */
+	send(sock, data, sizeof(data), 0);
+		   
+	/* Receiving/Unmarshalling Response */
+	int result;
+	recv(sock, &result, sizeof(int), 0);
+	result = ntohl(result);
+		   
+	/* Returning Value */
+	return result;
 	/* PAUL CODE */
 }
 
 static int my_write(const char* path, const char* towrite, size_t size, off_t offset, struct fuse_file_info* fileInfoStruct)
 {
 	int type = 5;
+	int pathsize = strlen(path) + 1;
+	int structsize = sizeof(struct fuse_file_info);
+	
+	/* Marshalling Data */
+	char data[sizeof(int)*2 + sizeof(size_t) + sizeof(off_t) + structsize + pathsize];
+	memset(data, 0, sizeof(data));
+	type = htonl(type);
+	memcpy(&data, &type, sizeof(int));
+	size = htonl(size);
+	memcpy(&data + sizeof(int)*2, &size, sizeof(size_t));
+	offset = htonl(offset);
+	memcpy(&data + sizeof(int)*2 + sizeof(size_t), &offset, sizeof(off_t));
+	memcpy(&data + sizeof(int)*2 + sizeof(size_t) + sizeof(off_t), fileInfoStruct, structsize);
+	memcpy(&data + sizeof(int)*2 + sizeof(size_t) + sizeof(off_t) + structsize, path, pathsize);
+	memcpy(&data + sizeof(int)*2 + sizeof(size_t) + sizeof(off_t) + structsize + pathsize, towrite, (int)size);
+	pathsize = htonl(pathsize);
+	memcpy(&data + sizeof(int), &pathsize, sizeof(int));
+
+	/* Sending Data to Server */
+	send(sock, data, sizeof(data), 0);
+		   
+	/* Receiving/Unmarshalling Response */
+	int result;
+	recv(sock, &result, sizeof(int), 0);
+	result = ntohl(result);
+		   
+	/* Returning Value */
+	return result;
 	/* PAUL CODE */
 }
 
@@ -138,7 +193,7 @@ static int my_create(const char* path, mode_t mode, struct fuse_file_info* fileI
 	pathsize = htonl(pathsize);
 	memcpy(&data + sizeof(int), pathsize, sizeof(int));
 	memcpy(&data + sizeof(int)*2 + sizeof(mode_t) + pathsize, fileInfoStruct, sizeof(struct fuse_file_info));
-		
+	
 	/* Sending Data to Server */
 	send(sock, data, sizeof(data), 0);
 	
@@ -280,7 +335,7 @@ int main(int argc, char *argv[])
 		cout << "Usage: clientSNFS <port> <ip address or hostname> <mount directory>\n";
 		return 0;
 	}
-
+	
 	int port = atoi(argv[1]);
 	std::string hostAddr = argv[2];
 	std::string directory = argv[3];
@@ -297,39 +352,39 @@ int main(int argc, char *argv[])
 		std::cout << "Port number must be between 0 and 65536\n";
 		return 0;
 	}
-        int    sock;
-        struct sockaddr_in pin;
-        struct hostent *hp;
-
-        if(debug)
-                cout << "Attempting to connect to: " << hostAddr << endl;
-
-        /* go find out about the desired host machine */
-        if ((hp = gethostbyname(argv[2])) == 0) {
-                perror("gethostbyname");
-                return 0;
-        }
-
-        /* fill in the socket structure with host information */
-        memset(&pin, 0, sizeof(pin));
-        pin.sin_family = AF_INET;
-        pin.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr))->s_addr;
-        pin.sin_port = htons(port);
-
-        /* grab an Internet domain socket */
-        if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-                perror("socket");
-                return 0;
-        }
-
-        /* connect to PORT on HOST */
-        if (connect(sock,(struct sockaddr *)  &pin, sizeof(pin)) == -1) {
-                perror("connect");
-                return 0;
-        }
-
-		cout<<"Successfully connected to: " << hostAddr << endl;
-             
+	int    sock;
+	struct sockaddr_in pin;
+	struct hostent *hp;
+	
+	if(debug)
+		cout << "Attempting to connect to: " << hostAddr << endl;
+	
+	/* go find out about the desired host machine */
+	if ((hp = gethostbyname(argv[2])) == 0) {
+		perror("gethostbyname");
+		return 0;
+	}
+	
+	/* fill in the socket structure with host information */
+	memset(&pin, 0, sizeof(pin));
+	pin.sin_family = AF_INET;
+	pin.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr))->s_addr;
+	pin.sin_port = htons(port);
+	
+	/* grab an Internet domain socket */
+	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+		perror("socket");
+		return 0;
+	}
+	
+	/* connect to PORT on HOST */
+	if (connect(sock,(struct sockaddr *)  &pin, sizeof(pin)) == -1) {
+		perror("connect");
+		return 0;
+	}
+	
+	cout<<"Successfully connected to: " << hostAddr << endl;
+	
 	char *myargv[] = { argv[0], argv[3], NULL };
 	return fuse_main(2, myargv, &my_oper);
 }
